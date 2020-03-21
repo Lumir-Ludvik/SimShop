@@ -128,7 +128,9 @@ class mainPage:
         for r in range(2):
             for c in range(3):
                 frame = Frame(self._root)
-                frame.grid(row= r + 1, column= c + 1, padx=30, pady=30, sticky=W+E+N+S)
+                frame.grid(row = r + 1, column = c + 1, padx=30, pady=30, sticky=W+E+N+S)
+                Grid.rowconfigure(self._root, r, weight=1)
+                Grid.columnconfigure(self._root, c, weight=1)
                 self._createAddButton(frame, cat[self.selectedCat][index][0])
                 self._createLabels(frame, cat[self.selectedCat][index][0], cat[self.selectedCat][index][2])
                 self._createImage(frame, cat[self.selectedCat][index][1])
