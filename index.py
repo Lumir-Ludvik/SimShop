@@ -5,6 +5,59 @@ from PIL import ImageTk, Image
 from math import *
 
 
+class Util:
+
+    def __init__(self, root):
+        self._root = root
+
+    def forget(self):
+        for frame in self._root.grid_slaves():
+            frame.grid_forget()
+        for frame in self._root.pack_slaves():
+            frame.pack_forget()
+    
+    def addWeight(self, frame, rowRange, columnRange, weight):
+        for r in range(rowRange):
+            Grid.rowconfigure(frame, r, weight=weight)
+        for c in range(columnRange):
+            Grid.columnconfigure(frame, c, weight=weight)
+    
+    def createButton(self, frame, text, command, side, anchor):
+        button = Button(frame, text=text, command=command)
+        button.pack(side=side, anchor=anchor)
+
+    def findDuplicity(self, collection, item):
+        length = len(collection)
+        found = False
+        for index in range(length):
+            if collection[index][0] == item[0]:
+                collection[index][1] += 1
+                found = True
+        if not found:
+            collection.append([item[0], 1, item[2]])
+    
+    def createGridLabel(self, frame, text, row, column, sticky, padx):
+        label = Label(frame, text=text)
+        label.grid(row=row, column=column, sticky=sticky, padx=padx)
+    
+    def createPackLabel(self, frame, text, side, anchor):
+        label = Label(frame, text=text)
+        label.pack(side=side, anchor=anchor)
+    
+    def createImage(self, frame, path, sizeX, sizeY, side, anchor):
+        image = Image.open(path)
+        image = image.resize((sizeX, sizeY), Image.ANTIALIAS)
+        img = ImageTk.PhotoImage(image)
+        panel = Label(frame, image=img)
+        panel.image = img
+        panel.pack(side=side, anchor=anchor)
+    
+    def createGridButton(self, frame, text, command, row, column, padx):
+        button = Button(self._root, text=text, command=command)
+        button.grid(row=row, column=column, padx=padx)
+
+
+
 class MainPage:
 
     selectedCat = 0
@@ -75,34 +128,30 @@ class MainPage:
 
     def __init__(self, root):
         self._root = root
+        self.util = Util(root)
         self._root.title("SimShop")
         self.initHomePage()
 
     def initHomePage(self):
         self._createMenuBar()
-        self._createCatLabel()
+        self.util.createGridLabel(self._root, "Kategorie:", 0, 0, N+W, 30)
         self._createSelectedCatLabel()
         self._createSelectedCatLabel()
         self._createListBox()
         self._createItemsGrid()
 
     def _onAboutClick(self):
-        self._deletePage()
+        self.util.forget()
         About(self._root)
 
     def _onShoppingCartClick(self):
-        self._deletePage()
+        self.util.forget()
         ShoppingCart(self._root, self.shoppingCart)
-
-    def _deletePage(self):
-        for frame in self._root.grid_slaves():
-            frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
 
     def _currentItemSelected(self, event):
         widget = event.widget
         index = int(widget.curselection()[0])
+
         self.selectedCat = index
         self._forgetGrid()
         self._createItemsGrid()
@@ -122,10 +171,6 @@ class MainPage:
         self._listBox.grid(row=1, column=0, sticky=N+W)
         self._listBox.bind('<<ListboxSelect>>', self._currentItemSelected)
 
-    def _createCatLabel(self):
-        self._listBoxLabel = Label(self._root, text="Kategorie:")
-        self._listBoxLabel.grid(row=0, column=0, sticky=N+W, padx=30)
-
     def _createItemsGrid(self):
         cat = [self.listVegetables, self.listMeat, self.listDurable,
                self.listDrinks, self.listDrugstore, self.listSpecial]
@@ -133,15 +178,20 @@ class MainPage:
 
         for r in range(2):
             for c in range(3):
+                dictionary = cat[self.selectedCat][index]
+                text = dictionary[0]
+                path = dictionary[1]
+                price = dictionary[2]
+
                 frame = Frame(self._root)
-                frame.grid(row=r + 1, column=c + 1,
-                           padx=30, pady=30, sticky=W+E+N+S)
+                frame.grid(row=r + 1, column=c + 1, padx=30, pady=30, sticky=W+E+N+S)
+
                 Grid.rowconfigure(self._root, r + 1, weight=1)
                 Grid.columnconfigure(self._root, c + 1, weight=1)
-                self._createAddButton(frame, cat[self.selectedCat][index])
-                self._createLabels(
-                    frame, cat[self.selectedCat][index][0], cat[self.selectedCat][index][2])
-                self._createImage(frame, cat[self.selectedCat][index][1])
+
+                self._createAddButton(frame, dictionary)
+                self._createLabels(frame, text, price)
+                self.util.createImage(frame, path, 180, 180, TOP, N)
                 index += 1
 
     def _forgetGrid(self):
@@ -150,23 +200,11 @@ class MainPage:
                 frame.grid_forget()
 
     def _createLabels(self, frame, name, price):
-        nameLabel = Label(frame, text=name)
-        nameLabel.pack(side=LEFT, anchor=NW)
-        priceLabel = Label(frame, text="Cena: " + str(price))
-        priceLabel.pack(side=BOTTOM, anchor=SW)
+        self.util.createPackLabel(frame, name, LEFT, NW)
+        self.util.createPackLabel(frame, "Cena: " + str(price), BOTTOM, SW)
 
     def _createAddButton(self, frame, item):
-        button = Button(frame, text="+",
-                        command=lambda: self._addItemToShoppingCart(item))
-        button.pack(side=RIGHT, anchor=NE)
-
-    def _createImage(self, frame, path):
-        image = Image.open(path)
-        image = image.resize((180, 180), Image.ANTIALIAS)
-        img = ImageTk.PhotoImage(image)
-        panel = Label(frame, image=img)
-        panel.image = img
-        panel.pack()
+        self.util.createButton(frame, "+", lambda: self._addItemToShoppingCart(item), RIGHT, NE)
 
     def _createSelectedCatLabel(self):
         self._categoryLabel = Label(
@@ -177,51 +215,26 @@ class MainPage:
         self._categoryLabel.config(text=self.listDict[self.selectedCat])
 
     def _addItemToShoppingCart(self, item):
-        length = len(self.shoppingCart)
-        if length == 0:
-            self.shoppingCart.append([item[0], 1, item[2]])
-        else:
-            for index in range(len(self.shoppingCart)):
-                if self.shoppingCart[index][0] == item[0]:
-                    self.shoppingCart[index][1] += 1
-                else:
-                    self.shoppingCart.append([item[0], 1, item[2]])
+        self.util.findDuplicity(self.shoppingCart, item)
+
 
 
 class About():
 
     def __init__(self, root):
         self._root = root
+        self.util = Util(root)
         self._createAboutPage()
 
     def _createAboutPage(self):
-        self._createSimPhoto()
-        self._createInfoString()
-        self._createBackButton()
+        aboutText = "Vitejte v SimShop!\n\nNakupujte pouze cerstvo a prirodni potraviny.\nNase sluzby jsou tu vzdy pro vas.\nRychlost je nase druhe jmeno"
 
-    def _createBackButton(self):
-        button = Button(self._root, text="Hlavni stranka",
-                        command=self._returnToIndex)
-        button.pack(side=BOTTOM, anchor=SW)
-
-    def _createInfoString(self):
-        label = Label(
-            self._root, text="Vitejte v SimShop!\n\nNakupujte pouze cerstvo a prirodni potraviny.\nNase sluzby jsou tu vzdy pro vas.\nRychlost je nase druhe jmeno")
-        label.pack(side=TOP)
-
-    def _createSimPhoto(self):
-        image = Image.open("images/about.png")
-        image = image.resize((200, 200), Image.ANTIALIAS)
-        img = ImageTk.PhotoImage(image)
-        panel = Label(self._root, image=img)
-        panel.image = img
-        panel.pack(side=TOP, anchor=NW)
+        self.util.createImage(self._root, "images/about.png", 200, 200, TOP, NW)
+        self.util.createPackLabel(self._root, aboutText, TOP, N)
+        self.util.createButton(self._root, "Hlavni stranka", self._returnToIndex, BOTTOM, SW)
 
     def _returnToIndex(self):
-        for frame in self._root.grid_slaves():
-            frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         MainPage(self._root)
 
 
@@ -229,57 +242,43 @@ class ShoppingCart():
 
     def __init__(self, root, shoppingCart):
         self._root = root
+        self.util = Util(root)
         self.shoppingCart = shoppingCart
         self._createShoppingCart()
 
     def _createShoppingCart(self):
-        self._createProgressLabel()
+        #self._createProgressLabel()
         self._createItemList()
         self._createButtons()
-        self._addWeight()
+        self.util.addWeight(self._root, 2, 2, 1)
 
     def _createProgressLabel(self):
-        shopCartLabel = Label(self._root, text="Nakupni kosik")
-        shippingLabel = Label(self._root, text="doprava & platba")
-        addressLabel = Label(self._root, text="dodaci adresa")
-        shopCartLabel.grid(row=0, column=0, padx=30, sticky=W+E)
-        shippingLabel.grid(row=0, column=1, padx=30, sticky=W+E)
-        addressLabel.grid(row=0, column=2, sticky=W+E)
+        self.util.createGridLabel(self._root, "Nakupni kosik", 0, 0, W+E, 30)
+        self.util.createGridLabel(self._root, "Doprava & platba", 0, 1, W+E, 30)
+        self.util.createGridLabel(self._root, "Dodaci adresa", 0, 2, W+E, 0)
+
 
     def _createItemList(self):
         listbox = Listbox(self._root)
         for index in range(len(self.shoppingCart)):
-            value = str(self.shoppingCart[index][0]) + "\t\t Kusu: " + str(self.shoppingCart[index][1]) + " Cena: " + str(self.shoppingCart[index][1] * self.shoppingCart[index][2])
+            name = str(self.shoppingCart[index][0])
+            count = "\t\t Kusu: " + str(self.shoppingCart[index][1])
+            price = " Cena: " + str(self.shoppingCart[index][1] * self.shoppingCart[index][2])
+            value = name + count + price
             listbox.insert(index, value)
         listbox.grid(row=1, column=0, columnspan=3, sticky=W+E+N+S)
 
     def _createButtons(self):
-        backButton = Button(self._root, text="Hlavni stranka",
-                            command=self._returnToIndex)
-        nextButton = Button(
-            self._root, text="doprava & platba", command=self._goToShipment)
-        backButton.grid(row=2, column=0, padx=30)
-        nextButton.grid(row=2, column=2)
+        self.util.createGridButton(self._root, "Hlavni stranka", self._returnToIndex, 2, 0, 30)
+        self.util.createGridButton(self._root, "Doprava & platba", self._goToShipment, 2, 2, 30)
 
     def _returnToIndex(self):
-        for frame in self._root.grid_slaves():
-            frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         MainPage(self._root)
 
     def _goToShipment(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         Shipping(self._root, self.shoppingCart)
-
-    def _addWeight(self):
-        for r in range(2):
-            Grid.rowconfigure(self._root, r, weight=1)
-        for c in range(2):
-            Grid.columnconfigure(self._root, c, weight=1)
 
 
 class Shipping():
@@ -307,19 +306,25 @@ class Shipping():
 
     def __init__(self, root, shoppingCart):
         self._root = root
+        self.util = Util(root)
         self.shoppingCart = shoppingCart
         self._createShipping()
 
     def _createShipping(self):
         shippingFrame = Frame(self._root)
         paymentFrame = Frame(self._root)
-        shippingFrame.grid(row=0, column=0, padx=30, sticky=S+N)
-        paymentFrame.grid(row=0, column=1, sticky=S+N)
-        self._addWeight()
+        # shippingFrame.grid(row=0, column=0, padx=30, sticky=S+N)
+        # paymentFrame.grid(row=0, column=1, sticky=S+N)
+        self.util.createPackLabel(self._root, "Doprava", TOP, NW)
+        shippingFrame.pack(side=TOP, anchor=NW, fill=X)
+        self.util.createPackLabel(self._root, "Platba", TOP, NE)
+        paymentFrame.pack(side=TOP, anchor=NE, fill=X)
+        self.util.addWeight(self._root, 0, 1, 1)
         self._addShipping(shippingFrame)
         self._addPayment(paymentFrame)
-        self._createButton(shippingFrame, "Zpet", self._returnToShoppingCart)
-        self._createButton(paymentFrame, "Dodaci informace", self._goToAddress)
+        self.util.createButton(self._root, "Zpet", self._returnToShoppingCart, LEFT, SW)
+        self.util.createButton(self._root, "Dodaci informace", self._goToAddress, RIGHT, SE)
+
 
     def _addShipping(self, frame):
         for item in self.shippmentDict.values():
@@ -334,27 +339,13 @@ class Shipping():
             checkBox = Checkbutton(frame, text=item, variable=shippment)
             checkBox.pack(side=TOP, anchor=W)        
 
-    def _createButton(self, frame, text, command):
-        button = Button(frame, text=text, command=command)
-        button.pack(side=BOTTOM, anchor=SW)
-
     def _returnToShoppingCart(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         ShoppingCart(self._root, self.shoppingCart)
 
     def _goToAddress(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         Address(self._root, self.shoppingCart)
-
-    def _addWeight(self):
-        for c in range(1):
-            Grid.columnconfigure(self._root, c, weight=2)
 
 
 class Address():
@@ -369,16 +360,17 @@ class Address():
 
     def __init__(self, root, shoppingCart):
         self._root = root
+        self.util = Util(root)
         self.shoppingCart = shoppingCart
         self._createAddress()
 
     def _createAddress(self):
         for item in self.addressDict.values():
-            self._createLabel(item)
+            self.util.createPackLabel(self._root, item, TOP, W)
             self._createEntry()
-        
-        self._createButton(self._root, "Zpet", self._returnToShippment, BOTTOM, LEFT, SW)
-        self._createButton(self._root, "Objednat", self._submit, BOTTOM, RIGHT, SE)
+        self.util.createButton(self._root, "Zpet", self._returnToShippment, LEFT, SW)
+        self.util.createButton(self._root, "Objednat", self._submit, RIGHT, SE)
+
 
     def _createLabel(self, text):
         label = Label(self._root, text=text)
@@ -387,33 +379,18 @@ class Address():
     def _createEntry(self):
         entry = Entry(self._root)
         entry.pack(side=TOP, anchor=W)
-
-    def _createButton(self, frame, text, command, frameSide, side, anchor):
-        bottomFrame = Frame(self._root)
-        bottomFrame.pack(side=frameSide, anchor=anchor)
-        button = Button(frame, text=text, command=command)
-        button.pack(side=side)
     
     def _returnToShippment(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         Shipping(self._root, self.shoppingCart)
 
     def _submit(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
-        self._createLabel("Objednáno!")
-        self._createButton(self._root,"Hlavni stranka",self._returnToHome,BOTTOM,LEFT, SW)
+        self.util.forget()
+        self.util.createPackLabel(self._root, "Objednano!", TOP, W)
+        self.util.createButton(self._root, "Hlavni stranka", self._returnToHome, LEFT, SW)
     
     def _returnToHome(self):
-        for frame in self._root.grid_slaves():
-                frame.grid_forget()
-        for frame in self._root.pack_slaves():
-            frame.pack_forget()
+        self.util.forget()
         MainPage(self._root)
 
 
