@@ -56,10 +56,21 @@ class Util:
         button = Button(self._root, text=text, command=command)
         button.grid(row=row, column=column, padx=padx)
 
+    def createEntry(self, frame, side, anchor, padx):
+        entry = Entry(frame)
+        entry.pack(side=side, anchor=anchor, padx=padx)
+
     def returnToIndex(self):
         self.forget()
         MainPage(self._root)
 
+
+class Constants:
+    SCConst = {
+        "name": 0,
+        "count": 1,
+        "price": 2
+    }
 
 class MainPage:
 
@@ -249,6 +260,7 @@ class ShoppingCart():
         self.topFrame = Frame(self._root)
         self.topFrame.pack(side=TOP, fill=BOTH, expand=True, anchor=N, padx=(50, 50), pady=(50, 50))
         self.util = Util(root)
+        self.const = Constants().SCConst
         self.shoppingCart = shoppingCart
         self._createShoppingCart()
 
@@ -266,9 +278,9 @@ class ShoppingCart():
     def _createItemList(self):
         listbox = Listbox(self.topFrame, width=50)
         for index in range(len(self.shoppingCart)):
-            name = str(self.shoppingCart[index][0])
-            count = "\t\t Kusu: " + str(self.shoppingCart[index][1])
-            price = " Cena: " + str(self.shoppingCart[index][1] * self.shoppingCart[index][2])
+            name = str(self.shoppingCart[index][self.const["name"]])
+            count = "\t\t Kusu: " + str(self.shoppingCart[index][self.const["count"]])
+            price = " Cena: " + str(self.shoppingCart[index][1] * self.shoppingCart[index][self.const["price"]])
             value = name + count + price
             listbox.insert(index, value)
         listbox.pack(fill=BOTH, expand=True, side=TOP, anchor=CENTER)
@@ -376,20 +388,17 @@ class Address():
         self.labelFrame.pack(side=LEFT, anchor=NW, expand=True, fill=X, pady=50)
         self.entryFrame = Frame(topFrame)
         self.entryFrame.pack(side=RIGHT, anchor=NE, expand=True, fill=X, pady=50)
-        self.util = Util(root)
+        self.util = Util(self._root)
+        self.const = Constants().SCConst
         self.shoppingCart = shoppingCart
         self._createAddress()
 
     def _createAddress(self):
         for item in self.addressDict.values():
             self.util.createPackLabel(self.labelFrame, item, TOP, W, 20)
-            self._createEntry()
+            self.util.createEntry(self.entryFrame, TOP, W, 20)
         self.util.createButton(self._root, "Doprava & Platba", self._returnToShippment, LEFT, SW)
         self.util.createButton(self._root, "Objednat", self._submit, RIGHT, SE)
-    
-    def _createEntry(self):
-        entry = Entry(self.entryFrame)
-        entry.pack(side=TOP, anchor=W, padx=20)
     
     def _returnToShippment(self):
         self.util.forget()
@@ -397,17 +406,32 @@ class Address():
 
     def _submit(self):
         self.util.forget()
+        Submit(self._root, self.shippmentPrice, self.shoppingCart)
+    
+class Submit:
+
+    def __init__(self, root, shippmentPrice, shoppingCart):
+        self._root = root
+        self.shippmentPrice = shippmentPrice
+        self.shoppingCart = shoppingCart
+        self.util = Util(self._root)
+        self.const = Constants().SCConst
+        self._createSubmit()
+
+    def _createSubmit(self):
         borderFrame = Frame(width=220, height=220)
         centerFrame = Frame(width=200, height=200)
         borderFrame.pack(fill=BOTH, expand=True, padx=20, pady=20)
         centerFrame.place(in_=borderFrame, anchor=CENTER, relx=.5, rely=.5)
+        self.util.createImage(centerFrame, "images/smile.png", 200, 200, TOP, CENTER)
+        self.util.createPackLabel(centerFrame, "Objednano!\nCelkova cena: " + str(self._countAllExpenses()) + " SimCoin", TOP, CENTER, 0)
+        self.util.createButton(self._root, "Hlavni stranka", self.util.returnToIndex, LEFT, SW)
+    
+    def _countAllExpenses(self):
         celkovaCena = self.shippmentPrice
         for index in range(len(self.shoppingCart)):
-            celkovaCena += self.shoppingCart[index][2]
-        self.util.createImage(centerFrame, "images/smile.png", 200, 200, TOP, CENTER)
-        self.util.createPackLabel(centerFrame, "Objednano!\nCelkova cena: " + str(celkovaCena) + " SimCoin", TOP, CENTER, 0)
-        self.util.createButton(self._root, "Hlavni stranka", self.util.returnToIndex, LEFT, SW)
-
+            celkovaCena += self.shoppingCart[index][self.const["price"]] * self.shoppingCart[index][self.const["count"]]
+        return round(celkovaCena, 2)
 
 def main():
     root = Tk()
