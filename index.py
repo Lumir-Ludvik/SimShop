@@ -133,11 +133,11 @@ class MainPage:
 
     listSpecial = {
         0: ("Simeros", "images/06/simeros.png", 69.69),
-        1: ("Simeros", "images/06/simeros.png", 69.69),
-        2: ("Simeros", "images/06/simeros.png", 69.69),
-        3: ("Simeros", "images/06/simeros.png", 69.69),
-        4: ("Simeros", "images/06/simeros.png", 69.69),
-        5: ("Simeros", "images/06/simeros.png", 69.69)
+        1: ("Simanek", "images/06/simanek.png", 22.50),
+        2: ("Pirate brown", "images/06/pirateBrown.png", 130.99),
+        3: ("Sim Faktor", "images/06/simFaktor.png", 120.99),
+        4: ("Simkanicek", "images/06/simkanicek.png", 16.50),
+        5: ("SimFerro", "images/06/simerro.png", 34.99)
     }
 
     def __init__(self, root):
